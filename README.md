@@ -1,1 +1,1 @@
-# aws-codebuild-springboot
+# aws-codedeploy-java-spring-boot

@@ -16,8 +16,8 @@ init:
 		--capabilities CAPABILITY_IAM \
 		--template-file code-deploy.yml \
 		--stack-name $(PROJECT_NAME)-deploy \
-        --parameter-overrides \
-        	ProjectName=$(PROJECT_NAME)
+		--parameter-overrides \
+        		ProjectName=$(PROJECT_NAME)
 
 build:
 	aws codebuild start-build --project-name $(shell cat .projectname)

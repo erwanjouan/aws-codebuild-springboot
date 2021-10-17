@@ -11,18 +11,18 @@ init:
 		--parameter-overrides \
 			ProjectName=$(PROJECT_NAME) \
 			ArtifactBucketName=$(PROJECT_NAME) \
-			CacheBucket=$(CODE_BUILD_CACHE_BUCKET) && \
-	aws cloudformation deploy \
-		--capabilities CAPABILITY_IAM \
-		--template-file code-deploy.yml \
-		--stack-name $(PROJECT_NAME)-deploy \
-		--parameter-overrides \
-        		ProjectName=$(PROJECT_NAME)
+			CacheBucket=$(CODE_BUILD_CACHE_BUCKET)
 
 build:
 	aws codebuild start-build --project-name $(shell cat .projectname)
 
 deploy:
+	aws cloudformation deploy \
+		--capabilities CAPABILITY_IAM \
+		--template-file infrastructure/code-deploy.yml \
+		--stack-name $(shell cat .projectname)-deploy \
+		--parameter-overrides \
+        		ProjectName=$(shell cat .projectname) && \
 	aws deploy create-deployment \
 		--deployment-group-name $(shell cat .projectname) \
 		--application-name $(shell cat .projectname) \

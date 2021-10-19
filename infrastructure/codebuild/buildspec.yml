@@ -14,8 +14,8 @@ phases:
     commands:
       - mkdir build-output/
       - cp target/*.jar build-output/app.jar
-      - cp appspec.yml build-output/appspec.yml
-      - cp infrastructure/*.sh build-output/
+      - cp infrastructure/codedeploy/appspec.yml build-output/
+      - cp infrastructure/codedeploy/*.sh build-output/
       - cd build-output/ && zip -qr build-output.zip ./*
       - mv build-output.zip ../
       - echo Build completed on `date`

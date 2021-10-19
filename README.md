@@ -2,8 +2,6 @@
 
 Sandbox for AWS CodeBuild / CodeDeploy with simplistic Spring Boot application.
 
-
-
 ````sh
 make init
 ````

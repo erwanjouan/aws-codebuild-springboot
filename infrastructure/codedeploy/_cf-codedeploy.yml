@@ -9,10 +9,10 @@ Parameters:
     Default: subnet-50237719, subnet-57cc420c, subnet-a47735c3
   MinSize:
     Type: Number
-    Default: 1
+    Default: 4
   MaxSize:
     Type: Number
-    Default: 2
+    Default: 8
   AmiId:
     Type: String
     Default: ami-0d1bf5b68307103c2

@@ -2,38 +2,41 @@ PROJECT_NAME := spring-boot-$(shell date '+%s')
 CODE_BUILD_CACHE_BUCKET := 1632566015-code-build-cache
 #CODEDEPLOY_METHOD := CodeDeployDefault.OneAtATime
 CODEDEPLOY_METHOD := CodeDeployDefault.HalfAtATime
+#CODEDEPLOY_METHOD := CodeDeployDefault.AllAtOnce
 
 init:
-	@echo $(PROJECT_NAME) > .projectname && \
+	@echo $(PROJECT_NAME) > .projectname
+
+build: prepare_build launch_build
+
+deploy: deploy_resources deploy_sw
+
+prepare_build:
+	@PROJECT_NAME=$(shell cat .projectname) && \
 	cd infrastructure && \
 	(aws cloudformation deploy \
 		--capabilities CAPABILITY_IAM \
 		--template-file codebuild/_cf-codebuild.yml \
-		--stack-name $(PROJECT_NAME)-build \
+		--stack-name $${PROJECT_NAME}-build \
 		--parameter-overrides \
-			ProjectName=$(PROJECT_NAME) \
-			ArtifactBucketName=$(PROJECT_NAME) \
+			ProjectName=$${PROJECT_NAME} \
+			ArtifactBucketName=$${PROJECT_NAME} \
 			CacheBucket=$(CODE_BUILD_CACHE_BUCKET) > /dev/null & ) && \
-	./dump/cf_events.sh $(PROJECT_NAME)-build
+	./dump/cf_events.sh $${PROJECT_NAME}-build
 
-build:
+launch_build:
 	@PROJECT_NAME=$(shell cat .projectname) && \
-	BUILD_ID=$$(aws codebuild start-build --project-name $${PROJECT_NAME} --query "build.id" --output text) && \
+	BUILD_ID=$$(aws codebuild start-build --project-name $${PROJECT_NAME} \
+		--buildspec-override infrastructure/codebuild/buildspec.yml \
+		--query "build.id" --output text) && \
 	echo Triggered build $${BUILD_ID} && \
 	SPLIT_BUILD_ID=($${BUILD_ID//:/ }) && \
 	echo Launching build instance... && sleep 5 && \
 	aws logs tail /aws/codebuild/$${PROJECT_NAME} --follow --log-stream-name-prefix "$${SPLIT_BUILD_ID[1]}"
 
-deploy:
+deploy_sw:
 	@PROJECT_NAME=$(shell cat .projectname) && \
-	cd infrastructure && \
-	(aws cloudformation deploy \
-		--capabilities CAPABILITY_IAM \
-		--template-file codedeploy/_cf-codedeploy.yml \
-		--stack-name $${PROJECT_NAME}-deploy \
-		--parameter-overrides \
-        		ProjectName=$${PROJECT_NAME} > /dev/null & ) && \
-	./dump/cf_events.sh $${PROJECT_NAME}-deploy && \
+	make deploy_resources && \
 	DEPLOYMENT_ID=$$(aws deploy create-deployment \
 		--deployment-group-name $${PROJECT_NAME} \
 		--application-name $${PROJECT_NAME} \
@@ -42,7 +45,18 @@ deploy:
 		--query "deploymentId" --output text) && \
 	echo DEPLOYMENT_ID $${DEPLOYMENT_ID} && \
 	sleep 2 && \
-	./dump/codedeploy_events.sh $${DEPLOYMENT_ID}
+	./infrastructure/dump/codedeploy_events.sh $${DEPLOYMENT_ID}
+
+deploy_resources:
+	@PROJECT_NAME=$(shell cat .projectname) && \
+	cd infrastructure && \
+	(aws cloudformation deploy \
+		--capabilities CAPABILITY_IAM \
+		--template-file codedeploy/_cf-codedeploy.yml \
+		--stack-name $${PROJECT_NAME}-deploy \
+		--parameter-overrides \
+			ProjectName=$${PROJECT_NAME} > /dev/null & ) && \
+	./dump/cf_events.sh $${PROJECT_NAME}-deploy
 
 endpoint:
 	@PROJECT_NAME=$(shell cat .projectname) && \
